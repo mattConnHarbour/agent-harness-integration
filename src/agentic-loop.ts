@@ -107,7 +107,14 @@ async function runAgent(session: AgentSession, prompt: string) {
     }
   }
 
-  throw new Error(`The agent exceeded the ${MAX_TURNS}-turn limit.`);
+  const finalResponse = await openai.responses.create({
+    model: process.env.OPENAI_MODEL ?? 'gpt-4.1-mini',
+    instructions: `${session.systemPrompt}\n\nThe tool-execution limit has been reached. Do not call more tools. Briefly summarize the work completed and clearly identify anything that remains unfinished.`,
+    input,
+    store: false,
+  });
+
+  return { answer: finalResponse.output_text, results };
 }
 
 const app = Fastify();
