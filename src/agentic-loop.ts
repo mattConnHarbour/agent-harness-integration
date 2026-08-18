@@ -10,7 +10,7 @@ import { customToolDefinitions, customTools, type CustomToolName } from './custo
 import { createSuperDocConnection } from './superdoc-client.js';
 import { createSuperDocTools } from './superdoc-tools.js';
 
-const MAX_TURNS = 8;
+const MAX_TURNS = 15;
 const ROOM_ID = process.env.DOCUMENT_ROOM_ID ?? 'agent-harness-demo';
 const COLLABORATION_URL = process.env.COLLABORATION_URL ?? 'ws://127.0.0.1:1234';
 const SAMPLE_DOCUMENT = fileURLToPath(new URL('../public/sample.docx', import.meta.url));
