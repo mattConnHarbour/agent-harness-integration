@@ -28,8 +28,11 @@ const API_URL = import.meta.env.VITE_API_URL ?? '';
 const COLLABORATION_URL = import.meta.env.VITE_COLLABORATION_URL ?? 'ws://127.0.0.1:1234';
 
 function toolLabel(tool: string) {
-  const source = tool.startsWith('superdoc_') ? 'superdoc' : 'custom';
-  return `${source}: ${tool}`;
+  return `${toolSource(tool)}: ${tool}`;
+}
+
+function toolSource(tool: string) {
+  return tool.startsWith('superdoc_') ? 'superdoc' : 'custom';
 }
 
 export default function App() {
@@ -189,7 +192,9 @@ export default function App() {
             {tools.length === 0 ? (
               <small>Tool calls will appear here after the review.</small>
             ) : (
-              <ol>{tools.map((tool, index) => <li key={`${tool}-${index}`}>{toolLabel(tool)}</li>)}</ol>
+              <ol>{tools.map((tool, index) => (
+                <li className={`tool-${toolSource(tool)}`} key={`${tool}-${index}`}>{toolLabel(tool)}</li>
+              ))}</ol>
             )}
           </div>
           {answer && <p className="agent-answer"><strong>Agent response</strong>{answer}</p>}

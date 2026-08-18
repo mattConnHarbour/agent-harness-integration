@@ -39,6 +39,8 @@ aside button:disabled { cursor: not-allowed; opacity: .5; }
 .tool-output strong { display: block; margin-bottom: 8px; font-size: 12px; }
 .tool-output small { color: #8a94a6; line-height: 1.4; }
 .tool-output ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; color: #3f4b5f; font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.tool-output .tool-superdoc { color: #7c3aed; }
+.tool-output .tool-custom { color: #1672df; }
 .agent-answer { margin: 16px 0 0 !important; padding: 12px; color: #3f4b5f !important; background: #f5f9ff; border-radius: 9px; white-space: pre-wrap; }
 .agent-answer strong { display: block; margin-bottom: 5px; color: #172033; font-size: 11px; }
 
