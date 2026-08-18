@@ -11,8 +11,8 @@ flowchart TD
   ws[WebSocket server]
 
   webapp -->|HTTP request / response| loop
-  client -->|bidirectional WebSocket sync| ws
-  webapp -->|bidirectional WebSocket sync| ws
+  client <-->|WebSocket sync| ws
+  webapp <-->|WebSocket sync| ws
 
   classDef blue fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
   class webapp,ws blue
