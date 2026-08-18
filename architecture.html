@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>External agent collaboration architecture</title>
+    <style>
+      body { margin: 0; background: #f8fafc; color: #172033; font: 16px/1.5 system-ui, sans-serif; }
+      main { max-width: 1100px; margin: 0 auto; padding: 72px 32px; }
+      h1 { margin: 0 0 8px; font-size: 2rem; }
+      p { margin: 0 0 40px; color: #526076; }
+      .mermaid { background: white; border: 1px solid #d9e0ea; border-radius: 16px; padding: 36px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>External harness + live document collaboration</h1>
+      <p>The HTTP request starts the job. The shared collaboration room synchronizes document changes.</p>
+      <pre class="mermaid">
+flowchart LR
+  B[Browser editor] -->|POST /api/review| H[Existing agent harness]
+  H -->|routes two SuperDoc tool names| D[SuperDoc toolkit dispatch]
+  H -->|routes legal tool names| L[Existing legal tools]
+  D -->|document operation + receipt| H
+  B &lt;--&gt;|WebSocket: same document room| C[Hocuspocus / Yjs provider]
+  D &lt;--&gt;|SDK session: same document room| C
+      </pre>
+    </main>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+  </body>
+</html>

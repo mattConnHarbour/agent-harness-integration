@@ -1,0 +1,32 @@
+{
+  "name": "agent-harness-integration",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.25.0",
+  "scripts": {
+    "dev": "concurrently -k \"tsx src/ws-server.ts\" \"tsx src/agentic-loop.ts\" \"vite\"",
+    "typecheck": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@hocuspocus/server": "^2.13.6",
+    "@superdoc/sdk": "2.4.0",
+    "fastify": "^5.3.3",
+    "openai": "^6.49.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "superdoc": "2.7.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2",
+    "vite": "^7.3.1"
+  }
+}
