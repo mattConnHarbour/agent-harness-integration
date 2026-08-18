@@ -14,15 +14,24 @@ export async function createSuperDocConnection(options: SuperDocConnectionOption
 
   try {
     await client.connect();
-    const document = await client.open({
-      doc: options.document,
-      collaboration: {
-        providerType: 'hocuspocus',
-        url: options.collaborationUrl,
-        documentId: options.roomId,
-        roomMode: 'create',
-      },
-    });
+    const collaboration = {
+      providerType: 'hocuspocus' as const,
+      url: options.collaborationUrl,
+      documentId: options.roomId,
+    };
+    let document;
+    try {
+      document = await client.open({
+        doc: options.document,
+        collaboration: { ...collaboration, roomMode: 'create' },
+      });
+    } catch (error) {
+      const code = (error as { code?: unknown }).code;
+      if (code !== 'COLLABORATION_ROOM_ALREADY_EXISTS') throw error;
+      document = await client.open({
+        collaboration: { ...collaboration, roomMode: 'join' },
+      });
+    }
 
     return {
       document,
