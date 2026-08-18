@@ -1,20 +1,25 @@
+import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import OpenAI from 'openai';
 import { customToolDefinitions, customTools, type CustomToolName } from './custom-tools.js';
-import {
-  closeSuperDoc,
-  dispatchSuperDocTool,
-  isSuperDocTool,
-  superdocSystemPrompt,
-  superdocTools,
-  type SuperDocToolName,
-} from './superdoc-tools.js';
+import { createSuperDocConnection } from './superdoc-client.js';
+import { createSuperDocTools } from './superdoc-tools.js';
 
 const MAX_TURNS = 8;
-const systemPrompt = `You are a contract-review agent working in a live document. Inspect the document before acting. Use the custom tools to identify supported clauses and consult the playbook when legal guidance is relevant. Use the SuperDoc tools to read or change the document. Make proposed wording changes as tracked edits and never accept or reject tracked changes.\n\n${superdocSystemPrompt}`;
+const ROOM_ID = 'agent-harness-demo';
+const COLLABORATION_URL = process.env.COLLABORATION_URL ?? 'ws://127.0.0.1:1234';
+const SAMPLE_DOCUMENT = fileURLToPath(new URL('../public/sample.docx', import.meta.url));
+
+const superdocConnection = await createSuperDocConnection({
+  document: SAMPLE_DOCUMENT,
+  collaborationUrl: COLLABORATION_URL,
+  roomId: ROOM_ID,
+});
+const superdocTools = await createSuperDocTools(superdocConnection.document);
+const systemPrompt = `You are a contract-review agent working in a live document. Inspect the document before acting. Use the custom tools to identify supported clauses and consult the playbook when legal guidance is relevant. Use the SuperDoc tools to read or change the document. Make proposed wording changes as tracked edits and never accept or reject tracked changes.\n\n${superdocTools.systemPrompt}`;
 
 type ToolCall = {
-  name: CustomToolName | SuperDocToolName;
+  name: string;
   args: Record<string, unknown>;
 };
 
@@ -36,8 +41,8 @@ function toOpenAITool(tool: unknown): OpenAI.Responses.FunctionTool {
 }
 
 async function dispatch(call: ToolCall): Promise<unknown> {
-  if (isSuperDocTool(call.name)) {
-    return dispatchSuperDocTool(call.name, call.args);
+  if (superdocTools.ownsTool(call.name)) {
+    return superdocTools.dispatch(call.name, call.args);
   }
   return customTools[call.name as CustomToolName](call.args as never);
 }
@@ -46,7 +51,7 @@ async function runAgent(prompt: string) {
   const openai = new OpenAI();
   const input: OpenAI.Responses.ResponseInput = [{ role: 'user', content: prompt }];
   const results: Array<{ tool: string; result: unknown }> = [];
-  const tools = [...superdocTools, ...customToolDefinitions].map(toOpenAITool);
+  const tools = [...superdocTools.tools, ...customToolDefinitions].map(toOpenAITool);
 
   for (let turn = 0; turn < MAX_TURNS; turn += 1) {
     const response = await openai.responses.create({
@@ -95,7 +100,7 @@ await app.listen({ host: '127.0.0.1', port: 4000 });
 
 const stop = async () => {
   await app.close();
-  await closeSuperDoc();
+  await superdocConnection.close();
 };
 
 process.once('SIGINT', () => void stop());
