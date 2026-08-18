@@ -35,6 +35,12 @@ function toolSource(tool: string) {
   return tool.startsWith('superdoc_') ? 'superdoc' : 'custom';
 }
 
+function setRoomQuery(roomId: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('room', roomId);
+  window.history.replaceState({}, '', url);
+}
+
 export default function App() {
   const editorRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<Status>('connecting');
@@ -48,14 +54,24 @@ export default function App() {
   useEffect(() => {
     let active = true;
 
-    async function loadSampleDocument() {
+    async function initializeDocumentSession() {
+      const requestedRoomId = new URLSearchParams(window.location.search).get('room') ?? undefined;
+      const sessionResponse = await fetch(`${API_URL}/api/session`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ roomId: requestedRoomId }),
+      });
+      if (!sessionResponse.ok) throw new Error(await sessionResponse.text());
+      const session = (await sessionResponse.json()) as { roomId: string };
+      setRoomQuery(session.roomId);
+
       const response = await fetch('/sample.docx');
       if (!response.ok) throw new Error(`The sample document returned ${response.status}.`);
       const data = await response.blob();
-      if (active) setActiveDocument({ data, filename: 'Mutual NDA.docx', roomId: 'agent-harness-demo' });
+      if (active) setActiveDocument({ data, filename: 'Mutual NDA.docx', roomId: session.roomId });
     }
 
-    void loadSampleDocument().catch((error) => {
+    void initializeDocumentSession().catch((error) => {
       console.error(error);
       if (active) setStatus('error');
     });
@@ -119,6 +135,7 @@ export default function App() {
       const response = await fetch(`${API_URL}/api/document`, { method: 'POST', body });
       if (!response.ok) throw new Error(await response.text());
       const uploaded = (await response.json()) as { roomId: string; filename: string };
+      setRoomQuery(uploaded.roomId);
       setActiveDocument({ data: file, filename: uploaded.filename, roomId: uploaded.roomId });
     } catch (error) {
       console.error(error);

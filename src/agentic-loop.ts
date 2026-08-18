@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -11,7 +12,6 @@ import { createSuperDocConnection } from './superdoc-client.js';
 import { createSuperDocTools } from './superdoc-tools.js';
 
 const MAX_TURNS = 15;
-const ROOM_ID = process.env.DOCUMENT_ROOM_ID ?? 'agent-harness-demo';
 const COLLABORATION_URL = process.env.COLLABORATION_URL ?? 'ws://127.0.0.1:1234';
 const SAMPLE_DOCUMENT = fileURLToPath(new URL('../public/sample.docx', import.meta.url));
 const HOST = process.env.HOST ?? '127.0.0.1';
@@ -25,6 +25,7 @@ type AgentSession = {
 };
 
 const sessions = new Map<string, AgentSession>();
+const pendingSessions = new Map<string, Promise<AgentSession>>();
 
 async function createAgentSession(document: string, roomId: string, cleanup?: () => Promise<void>) {
   const connection = await createSuperDocConnection({
@@ -37,7 +38,27 @@ async function createAgentSession(document: string, roomId: string, cleanup?: ()
   return { connection, tools, systemPrompt, cleanup };
 }
 
-sessions.set(ROOM_ID, await createAgentSession(SAMPLE_DOCUMENT, ROOM_ID));
+function isRoomId(value: string) {
+  return /^agent-harness-[a-zA-Z0-9-]{1,64}$/.test(value);
+}
+
+async function getOrCreateSession(roomId: string) {
+  const existing = sessions.get(roomId);
+  if (existing) return existing;
+
+  const pending = pendingSessions.get(roomId);
+  if (pending) return pending;
+
+  const creation = createAgentSession(SAMPLE_DOCUMENT, roomId);
+  pendingSessions.set(roomId, creation);
+  try {
+    const session = await creation;
+    sessions.set(roomId, session);
+    return session;
+  } finally {
+    pendingSessions.delete(roomId);
+  }
+}
 
 type ToolCall = {
   name: string;
@@ -125,6 +146,16 @@ await app.register(multipart, {
   limits: { files: 1, fileSize: 20 * 1024 * 1024 },
 });
 app.get('/', async () => ({ status: 'ok' }));
+app.post<{ Body: { roomId?: string } }>('/api/session', async (request, reply) => {
+  const requestedRoomId = request.body?.roomId?.trim();
+  if (requestedRoomId && !isRoomId(requestedRoomId)) {
+    return reply.code(400).send({ error: 'The room ID is invalid.' });
+  }
+
+  const roomId = requestedRoomId ?? `agent-harness-${randomUUID()}`;
+  await getOrCreateSession(roomId);
+  return { roomId };
+});
 app.post('/api/document', async (request, reply) => {
   const upload = await request.file();
   if (!upload || !upload.filename.toLowerCase().endsWith('.docx')) {
@@ -135,7 +166,7 @@ app.post('/api/document', async (request, reply) => {
   const documentPath = join(uploadDirectory, 'document.docx');
   try {
     await writeFile(documentPath, await upload.toBuffer());
-    const roomId = `agent-harness-${crypto.randomUUID()}`;
+    const roomId = `agent-harness-${randomUUID()}`;
     const session = await createAgentSession(
       documentPath,
       roomId,
@@ -151,8 +182,9 @@ app.post('/api/document', async (request, reply) => {
 app.post<{ Body: { prompt?: string; roomId?: string } }>('/api/review', async (request, reply) => {
   const prompt = request.body?.prompt?.trim();
   if (!prompt) return reply.code(400).send({ error: 'A review prompt is required.' });
-  const session = sessions.get(request.body?.roomId ?? ROOM_ID);
-  if (!session) return reply.code(404).send({ error: 'The document session was not found.' });
+  const roomId = request.body?.roomId?.trim();
+  if (!roomId || !isRoomId(roomId)) return reply.code(400).send({ error: 'A valid room ID is required.' });
+  const session = await getOrCreateSession(roomId);
   return runAgent(session, prompt);
 });
 
