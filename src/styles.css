@@ -11,8 +11,8 @@ header { height: 60px; padding: 0 max(24px, calc((100vw - 1400px) / 2)); display
 .status i { width: 7px; height: 7px; background: #98a2b3; border-radius: 50%; }
 .status-ready, .status-complete { color: #087443; background: #eaf8f1; }
 .status-ready i, .status-complete i { background: #18a66a; }
-.status-reviewing { color: #155ca8; background: #eaf3ff; }
-.status-reviewing i { background: #2684ff; }
+.status-reviewing, .status-uploading { color: #155ca8; background: #eaf3ff; }
+.status-reviewing i, .status-uploading i { background: #2684ff; }
 .status-error { color: #a13e46; background: #fff0f1; }
 .status-error i { background: #d95660; }
 
@@ -27,6 +27,8 @@ aside { padding: 20px; }
 aside h2 { margin: 0 0 8px; font-size: 16px; }
 aside > p { margin: 0 0 20px; color: #667085; font-size: 13px; line-height: 1.5; }
 aside label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 700; }
+.document-upload { width: 100%; margin-bottom: 16px; padding: 8px; color: #4a566a; background: #f8fafc; border: 1px solid #d7e0eb; border-radius: 9px; font-size: 11px; }
+.document-upload::file-selector-button { margin-right: 8px; padding: 6px 8px; color: #155ca8; background: #eaf3ff; border: 0; border-radius: 6px; cursor: pointer; font-weight: 700; }
 aside textarea { width: 100%; margin-bottom: 12px; padding: 10px; resize: vertical; color: #273449; background: #f8fafc; border: 1px solid #d7e0eb; border-radius: 9px; font: 13px/1.45 inherit; }
 aside textarea:focus { outline: 3px solid rgb(38 132 255 / 15%); border-color: #2684ff; }
 aside button { width: 100%; min-height: 42px; color: white; background: #1672df; border: 0; border-radius: 9px; cursor: pointer; font-weight: 700; }

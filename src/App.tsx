@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { SuperDoc } from 'superdoc';
 import 'superdoc/style.css';
 
-type Status = 'connecting' | 'ready' | 'reviewing' | 'complete' | 'error';
+type Status = 'connecting' | 'uploading' | 'ready' | 'reviewing' | 'complete' | 'error';
+
+type ActiveDocument = {
+  data: Blob;
+  filename: string;
+  roomId: string;
+};
 
 type ReviewResponse = {
   answer: string;
@@ -11,6 +17,7 @@ type ReviewResponse = {
 
 const statusLabels: Record<Status, string> = {
   connecting: 'Connecting',
+  uploading: 'Uploading',
   ready: 'Ready',
   reviewing: 'Reviewing',
   complete: 'Review complete',
@@ -29,31 +36,52 @@ export default function App() {
   const editorRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<Status>('connecting');
   const [tools, setTools] = useState<string[]>([]);
-  const [prompt, setPrompt] = useState('Identify the termination clause and make it bold.');
+  const [prompt, setPrompt] = useState(
+    'Identify the termination clause and make it red. Then update the language to reflect our playbook.',
+  );
   const [answer, setAnswer] = useState('');
+  const [activeDocument, setActiveDocument] = useState<ActiveDocument>();
 
   useEffect(() => {
-    if (!editorRef.current) return;
-    const editor = editorRef.current;
     let active = true;
-    let superdoc: SuperDoc | undefined;
 
-    async function openDocument() {
+    async function loadSampleDocument() {
       const response = await fetch('/sample.docx');
       if (!response.ok) throw new Error(`The sample document returned ${response.status}.`);
       const data = await response.blob();
-      if (!active) return;
+      if (active) setActiveDocument({ data, filename: 'Mutual NDA.docx', roomId: 'agent-harness-demo' });
+    }
 
+    void loadSampleDocument().catch((error) => {
+      console.error(error);
+      if (active) setStatus('error');
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!editorRef.current || !activeDocument) return;
+    const editor = editorRef.current;
+    const currentDocument = activeDocument;
+    let active = true;
+    let superdoc: SuperDoc | undefined;
+
+    setStatus('connecting');
+
+    async function openDocument() {
       superdoc = new SuperDoc({
         selector: editor,
         documents: [
           {
-            id: 'agent-harness-demo',
+            id: currentDocument.roomId,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            data,
+            data: currentDocument.data,
             v2Collaboration: {
               providerType: 'hocuspocus',
-              documentId: 'agent-harness-demo',
+              documentId: currentDocument.roomId,
               serverUrl: COLLABORATION_URL,
             },
           },
@@ -76,7 +104,24 @@ export default function App() {
       active = false;
       superdoc?.destroy();
     };
-  }, []);
+  }, [activeDocument]);
+
+  async function uploadDocument(file: File) {
+    setStatus('uploading');
+    setTools([]);
+    setAnswer('');
+    try {
+      const body = new FormData();
+      body.append('document', file);
+      const response = await fetch(`${API_URL}/api/document`, { method: 'POST', body });
+      if (!response.ok) throw new Error(await response.text());
+      const uploaded = (await response.json()) as { roomId: string; filename: string };
+      setActiveDocument({ data: file, filename: uploaded.filename, roomId: uploaded.roomId });
+    } catch (error) {
+      console.error(error);
+      setStatus('error');
+    }
+  }
 
   async function runReview() {
     setStatus('reviewing');
@@ -86,7 +131,7 @@ export default function App() {
       const response = await fetch(`${API_URL}/api/review`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, roomId: activeDocument?.roomId }),
       });
       if (!response.ok) throw new Error(await response.text());
       const review = (await response.json()) as ReviewResponse;
@@ -119,6 +164,19 @@ export default function App() {
           <h2>Legal review</h2>
           <p>Ask the agent to inspect or edit the shared document.</p>
 
+          <label htmlFor="document-upload">Document</label>
+          <input
+            id="document-upload"
+            className="document-upload"
+            type="file"
+            accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void uploadDocument(file);
+              event.target.value = '';
+            }}
+          />
+
           <label htmlFor="prompt">Instruction</label>
           <textarea id="prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={4} />
 
@@ -139,7 +197,7 @@ export default function App() {
 
         <section className="document" aria-label="Collaborative document editor">
           <div className="document-title">
-            <div><b>W</b><span><strong>Mutual NDA.docx</strong><small>Room: agent-harness-demo</small></span></div>
+            <div><b>W</b><span><strong>{activeDocument?.filename ?? 'Loading document…'}</strong><small>Room: {activeDocument?.roomId ?? 'connecting'}</small></span></div>
             <em>Live</em>
           </div>
           <div className="editor"><div ref={editorRef} /></div>
