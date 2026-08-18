@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.25.0",
   "scripts": {
-    "dev": "concurrently -k \"tsx src/ws-server.ts\" \"tsx src/agentic-loop.ts\" \"vite\"",
+    "dev": "concurrently -k \"tsx src/ws-server.ts\" \"tsx --env-file=.env src/agentic-loop.ts\" \"vite\"",
     "start:agent": "tsx src/agentic-loop.ts",
     "start:ws": "tsx src/ws-server.ts",
     "typecheck": "tsc --noEmit",
