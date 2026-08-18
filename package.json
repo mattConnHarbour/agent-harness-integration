@@ -5,10 +5,13 @@
   "packageManager": "pnpm@10.25.0",
   "scripts": {
     "dev": "concurrently -k \"tsx src/ws-server.ts\" \"tsx src/agentic-loop.ts\" \"vite\"",
+    "start:agent": "tsx src/agentic-loop.ts",
+    "start:ws": "tsx src/ws-server.ts",
     "typecheck": "tsc --noEmit",
     "build": "vite build"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
     "@hocuspocus/server": "^2.13.6",
     "@superdoc/sdk": "2.4.0",
     "fastify": "^5.3.3",

@@ -2,6 +2,9 @@ import { Hocuspocus } from '@hocuspocus/server';
 import Fastify from 'fastify';
 import { WebSocketServer } from 'ws';
 
+const HOST = process.env.HOST ?? '127.0.0.1';
+const PORT = Number(process.env.PORT ?? 1234);
+
 const app = Fastify();
 const hocuspocus = new Hocuspocus({ quiet: true, stopOnSignals: false });
 const websocketServer = new WebSocketServer({ noServer: true });
@@ -25,7 +28,7 @@ app.server.on('upgrade', (request, socket, head) => {
 });
 
 app.get('/', async () => ({ status: 'ok' }));
-await app.listen({ host: '127.0.0.1', port: 1234 });
+await app.listen({ host: HOST, port: PORT });
 
 const stop = async () => {
   websocketServer.close();

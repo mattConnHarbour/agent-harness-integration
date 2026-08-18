@@ -17,6 +17,9 @@ const statusLabels: Record<Status, string> = {
   error: 'Something went wrong',
 };
 
+const API_URL = import.meta.env.VITE_API_URL ?? '';
+const COLLABORATION_URL = import.meta.env.VITE_COLLABORATION_URL ?? 'ws://127.0.0.1:1234';
+
 function toolLabel(tool: string) {
   const source = tool.startsWith('superdoc_') ? 'superdoc' : 'custom';
   return `${source}: ${tool}`;
@@ -51,7 +54,7 @@ export default function App() {
             v2Collaboration: {
               providerType: 'hocuspocus',
               documentId: 'agent-harness-demo',
-              serverUrl: 'ws://127.0.0.1:1234',
+              serverUrl: COLLABORATION_URL,
             },
           },
         ],
@@ -80,7 +83,7 @@ export default function App() {
     setTools([]);
     setAnswer('');
     try {
-      const response = await fetch('/api/review', {
+      const response = await fetch(`${API_URL}/api/review`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ prompt }),

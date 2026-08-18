@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import cors from '@fastify/cors';
 import Fastify from 'fastify';
 import OpenAI from 'openai';
 import { customToolDefinitions, customTools, type CustomToolName } from './custom-tools.js';
@@ -9,6 +10,8 @@ const MAX_TURNS = 8;
 const ROOM_ID = 'agent-harness-demo';
 const COLLABORATION_URL = process.env.COLLABORATION_URL ?? 'ws://127.0.0.1:1234';
 const SAMPLE_DOCUMENT = fileURLToPath(new URL('../public/sample.docx', import.meta.url));
+const HOST = process.env.HOST ?? '127.0.0.1';
+const PORT = Number(process.env.PORT ?? 4000);
 
 const superdocConnection = await createSuperDocConnection({
   document: SAMPLE_DOCUMENT,
@@ -90,13 +93,17 @@ async function runAgent(prompt: string) {
 }
 
 const app = Fastify();
+await app.register(cors, {
+  origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+});
+app.get('/', async () => ({ status: 'ok' }));
 app.post<{ Body: { prompt?: string } }>('/api/review', async (request, reply) => {
   const prompt = request.body?.prompt?.trim();
   if (!prompt) return reply.code(400).send({ error: 'A review prompt is required.' });
   return runAgent(prompt);
 });
 
-await app.listen({ host: '127.0.0.1', port: 4000 });
+await app.listen({ host: HOST, port: PORT });
 
 const stop = async () => {
   await app.close();
